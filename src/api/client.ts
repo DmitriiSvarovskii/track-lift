@@ -27,6 +27,11 @@ async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T
 
 export const api = {
   me: () => apiRequest<AuthResponse>('/api/auth/me'),
+  getTelegramNonce: () =>
+    apiRequest<{ nonce: string }>('/api/auth/telegram/nonce', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
   loginWithTelegram: (payload: TelegramAuthPayload) =>
     apiRequest<AuthResponse>('/api/auth/telegram', {
       method: 'POST',

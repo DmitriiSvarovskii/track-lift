@@ -66,3 +66,8 @@ systemctl reload nginx
 ```
 
 After Certbot rewrites the Nginx config, keep the `/api/` and `/telegram-login.js` locations inside the HTTPS server block too.
+Also keep this header in the HTTPS server block because Telegram Login uses popup window messaging:
+
+```nginx
+add_header Cross-Origin-Opener-Policy "same-origin-allow-popups" always;
+```

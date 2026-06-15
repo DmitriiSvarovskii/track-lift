@@ -8,8 +8,11 @@ from sqlalchemy.orm import Session
 
 from .auth import (
     COOKIE_NAME,
+    NONCE_COOKIE_NAME,
     clear_session_cookie,
+    clear_telegram_nonce_cookie,
     create_session,
+    create_telegram_nonce,
     get_current_session,
     get_current_user,
     hash_token,
@@ -98,15 +101,26 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.post("/api/auth/telegram/nonce")
+def telegram_nonce(
+    response: Response,
+    settings: Settings = Depends(get_settings),
+) -> dict[str, str]:
+    return {"nonce": create_telegram_nonce(response, settings)}
+
+
 @app.post("/api/auth/telegram", response_model=AuthResponse)
 def telegram_auth(
     payload: TelegramAuthRequest,
     response: Response,
+    telegram_nonce_cookie: str | None = Cookie(default=None, alias=NONCE_COOKIE_NAME),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
     if payload.id_token:
-        claims = verify_telegram_id_token(payload.id_token, settings)
+        if not telegram_nonce_cookie:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Telegram nonce is missing")
+        claims = verify_telegram_id_token(payload.id_token, settings, telegram_nonce_cookie)
     elif settings.insecure_demo_login and payload.demo_user:
         claims = {
             "sub": str(payload.demo_user.get("id") or "demo-telegram-user"),
@@ -119,6 +133,7 @@ def telegram_auth(
 
     user = upsert_user_from_claims(db, claims)
     session = create_session(db, user.id, response, settings)
+    clear_telegram_nonce_cookie(response, settings)
     return {"user": user_out(user), "session": session_out(session)}
 
 

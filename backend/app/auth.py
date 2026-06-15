@@ -15,7 +15,9 @@ from .db import get_db
 from .models import AuthSession, User
 
 COOKIE_NAME = "track_lift_session"
+NONCE_COOKIE_NAME = "track_lift_telegram_nonce"
 SESSION_TTL = timedelta(days=14)
+NONCE_TTL_SECONDS = 10 * 60
 TELEGRAM_ISSUER = "https://oauth.telegram.org"
 TELEGRAM_JWKS_URL = "https://oauth.telegram.org/.well-known/jwks.json"
 
@@ -48,6 +50,24 @@ def clear_session_cookie(response: Response, settings: Settings) -> None:
     response.delete_cookie(key=COOKIE_NAME, path="/", secure=settings.cookie_secure, samesite="lax")
 
 
+def create_telegram_nonce(response: Response, settings: Settings) -> str:
+    nonce = secrets.token_urlsafe(32)
+    response.set_cookie(
+        key=NONCE_COOKIE_NAME,
+        value=nonce,
+        max_age=NONCE_TTL_SECONDS,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite="lax",
+        path="/",
+    )
+    return nonce
+
+
+def clear_telegram_nonce_cookie(response: Response, settings: Settings) -> None:
+    response.delete_cookie(key=NONCE_COOKIE_NAME, path="/", secure=settings.cookie_secure, samesite="lax")
+
+
 def create_session(db: Session, user_id: str, response: Response, settings: Settings) -> AuthSession:
     token = create_raw_session_token()
     now = utc_now()
@@ -74,11 +94,11 @@ def touch_session(db: Session, session: AuthSession) -> AuthSession:
     return session
 
 
-def verify_telegram_id_token(id_token: str, settings: Settings) -> dict[str, Any]:
+def verify_telegram_id_token(id_token: str, settings: Settings, expected_nonce: str | None) -> dict[str, Any]:
     try:
         jwk_client = PyJWKClient(TELEGRAM_JWKS_URL)
         signing_key = jwk_client.get_signing_key_from_jwt(id_token)
-        return jwt.decode(
+        claims = jwt.decode(
             id_token,
             signing_key.key,
             algorithms=["RS256", "ES256", "EdDSA"],
@@ -86,7 +106,14 @@ def verify_telegram_id_token(id_token: str, settings: Settings) -> dict[str, Any
             issuer=TELEGRAM_ISSUER,
             options={"require": ["exp", "iat", "iss", "aud", "sub"]},
         )
+
+        if expected_nonce and claims.get("nonce") != expected_nonce:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Telegram nonce")
+
+        return claims
     except Exception as exc:
+        if isinstance(exc, HTTPException):
+            raise exc
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Telegram token") from exc
 
 

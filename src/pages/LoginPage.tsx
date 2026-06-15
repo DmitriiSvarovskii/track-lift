@@ -1,5 +1,6 @@
 import { LogIn } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { api } from '../api/client';
 import { useTrainingStore } from '../store/trainingStore';
 
 const TELEGRAM_SCRIPT_ID = 'telegram-login-sdk';
@@ -31,6 +32,8 @@ const loadTelegramSdk = () =>
 export function LoginPage() {
   const loginWithTelegram = useTrainingStore((state) => state.loginWithTelegram);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSdkReady, setIsSdkReady] = useState(false);
+  const [nonce, setNonce] = useState('');
   const [error, setError] = useState('');
   const clientId = useMemo(() => Number(import.meta.env.VITE_TELEGRAM_CLIENT_ID), []);
   const hasClientId = Number.isFinite(clientId) && clientId > 0;
@@ -40,10 +43,28 @@ export function LoginPage() {
       return;
     }
 
-    loadTelegramSdk().catch(() => setError('Не удалось загрузить Telegram Login SDK.'));
+    let isMounted = true;
+
+    Promise.all([loadTelegramSdk(), api.getTelegramNonce()])
+      .then(([, nonceResponse]) => {
+        if (!isMounted) {
+          return;
+        }
+        setNonce(nonceResponse.nonce);
+        setIsSdkReady(true);
+      })
+      .catch(() => {
+        if (isMounted) {
+          setError('Не удалось подготовить Telegram авторизацию.');
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, [hasClientId]);
 
-  const signIn = async () => {
+  const signIn = () => {
     setError('');
 
     if (!hasClientId) {
@@ -51,16 +72,31 @@ export function LoginPage() {
       return;
     }
 
-    setIsLoading(true);
+    if (!isSdkReady || !nonce || !window.Telegram?.Login) {
+      setError('Telegram авторизация еще загружается. Попробуйте еще раз через пару секунд.');
+      return;
+    }
 
-    try {
-      await loadTelegramSdk();
-      window.Telegram?.Login?.auth({ client_id: clientId, request_access: ['write'], lang: 'ru' }, async (payload) => {
+    setIsLoading(true);
+    window.Telegram.Login.auth(
+      {
+        client_id: clientId,
+        request_access: ['write'],
+        lang: 'ru',
+        nonce,
+      },
+      async (payload) => {
         setIsLoading(true);
 
         if (payload.error || !payload.user) {
           setIsLoading(false);
-          setError(payload.error || 'Telegram не вернул данные пользователя.');
+          setError(payload.error === 'popup_closed' ? 'Окно Telegram было закрыто до завершения входа.' : payload.error || 'Telegram не вернул данные пользователя.');
+          return;
+        }
+
+        if (!payload.id_token) {
+          setIsLoading(false);
+          setError('Telegram не вернул id_token.');
           return;
         }
 
@@ -74,11 +110,8 @@ export function LoginPage() {
         } finally {
           setIsLoading(false);
         }
-      });
-    } catch {
-      setIsLoading(false);
-      setError('Не удалось открыть Telegram авторизацию.');
-    }
+      },
+    );
   };
 
   const demoSignIn = async () => {
@@ -120,9 +153,9 @@ export function LoginPage() {
           </p>
         </div>
 
-        <button className="primary-button login-button" type="button" onClick={signIn} disabled={isLoading}>
+        <button className="primary-button login-button" type="button" onClick={signIn} disabled={isLoading || (hasClientId && !isSdkReady)}>
           <LogIn size={19} />
-          {isLoading ? 'Открываем Telegram' : 'Войти через Telegram'}
+          {isLoading ? 'Открываем Telegram' : isSdkReady || !hasClientId ? 'Войти через Telegram' : 'Готовим Telegram'}
         </button>
 
         {!hasClientId && (
