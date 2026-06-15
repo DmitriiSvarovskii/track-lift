@@ -147,11 +147,7 @@ export function LoginPage() {
         </div>
 
         <div className="login-copy">
-          <p className="eyebrow">Вход</p>
-          <h1>Авторизация через Telegram</h1>
-          <p>
-            Данные упражнений, программ и тренировок будут храниться отдельно для каждого Telegram-профиля.
-          </p>
+          <h1>Вход через Telegram</h1>
         </div>
 
         <button className="primary-button login-button" type="button" onClick={signIn} disabled={isLoading || (hasClientId && !isSdkReady)}>
@@ -167,9 +163,6 @@ export function LoginPage() {
 
         {error && <p className="form-error">{error}</p>}
 
-        <p className="login-note">
-          Для production понадобится backend-проверка ID token: подпись Telegram, `iss`, `aud` и срок действия.
-        </p>
       </section>
     </main>
   );
