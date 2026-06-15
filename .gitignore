@@ -10,3 +10,4 @@ vite.config.d.ts
 .env.production
 backend/.env
 backend/.venv
+.asset-tmp

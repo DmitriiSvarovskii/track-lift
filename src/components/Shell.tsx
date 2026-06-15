@@ -19,7 +19,9 @@ export function Shell({ children }: PropsWithChildren) {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <span className="brand-mark">TL</span>
+          <span className="brand-mark">
+            <img src="/favicon-48x48.png" alt="" />
+          </span>
           <div>
             <strong>Track Lift</strong>
             <span>журнал прогресса</span>

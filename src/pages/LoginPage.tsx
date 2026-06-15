@@ -139,7 +139,9 @@ export function LoginPage() {
     <main className="login-screen">
       <section className="login-panel">
         <div className="brand login-brand">
-          <span className="brand-mark">TL</span>
+          <span className="brand-mark">
+            <img src="/favicon-48x48.png" alt="" />
+          </span>
           <div>
             <strong>Track Lift</strong>
             <span>учет тренировок</span>
