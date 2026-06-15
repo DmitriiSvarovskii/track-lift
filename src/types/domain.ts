@@ -6,6 +6,7 @@ export type Exercise = {
   muscleGroup: string;
   type: ExerciseType;
   description?: string;
+  youtubeUrl?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

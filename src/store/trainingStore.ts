@@ -21,6 +21,7 @@ type ExerciseInput = {
   muscleGroup: string;
   type: ExerciseType;
   description?: string;
+  youtubeUrl?: string;
   isActive: boolean;
 };
 

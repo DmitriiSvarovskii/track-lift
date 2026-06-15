@@ -1,7 +1,8 @@
-import { Check, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
+import { Check, ExternalLink, Eye, Pencil, PlayCircle, Plus, Search, Trash2, X } from 'lucide-react';
 import { FormEvent, useMemo, useState } from 'react';
 import { useTrainingStore } from '../store/trainingStore';
 import type { Exercise, ExerciseType } from '../types/domain';
+import { getYouTubeEmbedUrl } from '../utils/youtube';
 
 const exerciseTypeLabels: Record<ExerciseType, string> = {
   strength: 'Силовое',
@@ -15,6 +16,7 @@ const blankForm = {
   muscleGroup: '',
   type: 'strength' as ExerciseType,
   description: '',
+  youtubeUrl: '',
   isActive: true,
 };
 
@@ -22,6 +24,7 @@ export function ExercisesPage() {
   const { exercises, addExercise, updateExercise, deleteExercise } = useTrainingStore();
   const [form, setForm] = useState(blankForm);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [query, setQuery] = useState('');
   const [muscleGroup, setMuscleGroup] = useState('all');
 
@@ -50,6 +53,7 @@ export function ExercisesPage() {
       muscleGroup: exercise.muscleGroup,
       type: exercise.type,
       description: exercise.description ?? '',
+      youtubeUrl: exercise.youtubeUrl ?? '',
       isActive: exercise.isActive,
     });
   };
@@ -61,6 +65,7 @@ export function ExercisesPage() {
       name: form.name.trim(),
       muscleGroup: form.muscleGroup.trim(),
       description: form.description.trim(),
+      youtubeUrl: form.youtubeUrl.trim(),
     };
 
     if (!payload.name || !payload.muscleGroup) {
@@ -155,6 +160,15 @@ export function ExercisesPage() {
             />
           </label>
 
+          <label className="field">
+            <span>YouTube</span>
+            <input
+              value={form.youtubeUrl}
+              onChange={(event) => setForm((current) => ({ ...current, youtubeUrl: event.target.value }))}
+              placeholder="https://www.youtube.com/watch?v=..."
+            />
+          </label>
+
           <label className="check-row">
             <input
               type="checkbox"
@@ -187,6 +201,10 @@ export function ExercisesPage() {
                 </div>
                 {exercise.description && <p className="description">{exercise.description}</p>}
                 <div className="card-actions">
+                  <button className="secondary-button" type="button" onClick={() => setSelectedExercise(exercise)}>
+                    <Eye size={17} />
+                    Открыть
+                  </button>
                   <button className="secondary-button" type="button" onClick={() => editExercise(exercise)}>
                     <Pencil size={17} />
                     Изменить
@@ -211,6 +229,55 @@ export function ExercisesPage() {
           )}
         </div>
       </div>
+
+      {selectedExercise && (
+        <ExerciseDetailsModal exercise={selectedExercise} onClose={() => setSelectedExercise(null)} />
+      )}
     </section>
+  );
+}
+
+function ExerciseDetailsModal({ exercise, onClose }: { exercise: Exercise; onClose: () => void }) {
+  const embedUrl = getYouTubeEmbedUrl(exercise.youtubeUrl);
+
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+      <article className="modal-panel exercise-modal" role="dialog" aria-modal="true" aria-labelledby="exercise-title" onClick={(event) => event.stopPropagation()}>
+        <div className="modal-heading">
+          <div>
+            <p className="eyebrow">
+              {exercise.muscleGroup} · {exerciseTypeLabels[exercise.type]}
+            </p>
+            <h2 id="exercise-title">{exercise.name}</h2>
+          </div>
+          <button className="icon-button" type="button" onClick={onClose} title="Закрыть">
+            <X size={18} />
+          </button>
+        </div>
+
+        {exercise.description && <p className="description modal-description">{exercise.description}</p>}
+
+        {embedUrl ? (
+          <div className="video-frame">
+            <iframe
+              src={embedUrl}
+              title={exercise.name}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+        ) : exercise.youtubeUrl ? (
+          <a className="secondary-button video-link" href={exercise.youtubeUrl} target="_blank" rel="noreferrer">
+            <ExternalLink size={17} />
+            Открыть видео
+          </a>
+        ) : (
+          <div className="empty-state bordered">
+            <PlayCircle size={22} />
+            Видео не добавлено
+          </div>
+        )}
+      </article>
+    </div>
   );
 }
