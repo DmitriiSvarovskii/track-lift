@@ -5,3 +5,8 @@ dist
 *.tsbuildinfo
 vite.config.js
 vite.config.d.ts
+.env
+.env.local
+.env.production
+backend/.env
+backend/.venv

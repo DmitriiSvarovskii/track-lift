@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTrainingStore } from '../store/trainingStore';
 
 const TELEGRAM_SCRIPT_ID = 'telegram-login-sdk';
+const TELEGRAM_SCRIPT_URL = import.meta.env.VITE_TELEGRAM_LOGIN_SCRIPT_URL || 'https://telegram.org/js/telegram-login.js';
 
 const loadTelegramSdk = () =>
   new Promise<void>((resolve, reject) => {
@@ -20,7 +21,7 @@ const loadTelegramSdk = () =>
 
     const script = document.createElement('script');
     script.id = TELEGRAM_SCRIPT_ID;
-    script.src = 'https://telegram.org/js/telegram-login.js';
+    script.src = TELEGRAM_SCRIPT_URL;
     script.async = true;
     script.onload = () => resolve();
     script.onerror = () => reject(new Error('Telegram SDK failed to load'));
@@ -54,18 +55,25 @@ export function LoginPage() {
 
     try {
       await loadTelegramSdk();
-      window.Telegram?.Login?.auth({ client_id: clientId, request_access: ['write'], lang: 'ru' }, (payload) => {
-        setIsLoading(false);
+      window.Telegram?.Login?.auth({ client_id: clientId, request_access: ['write'], lang: 'ru' }, async (payload) => {
+        setIsLoading(true);
 
         if (payload.error || !payload.user) {
+          setIsLoading(false);
           setError(payload.error || 'Telegram не вернул данные пользователя.');
           return;
         }
 
-        loginWithTelegram({
-          idToken: payload.id_token,
-          user: payload.user,
-        });
+        try {
+          await loginWithTelegram({
+            idToken: payload.id_token,
+            user: payload.user,
+          });
+        } catch {
+          setError('Backend не принял Telegram авторизацию.');
+        } finally {
+          setIsLoading(false);
+        }
       });
     } catch {
       setIsLoading(false);
@@ -73,15 +81,24 @@ export function LoginPage() {
     }
   };
 
-  const demoSignIn = () => {
-    loginWithTelegram({
-      user: {
-        id: 'demo-telegram-user',
-        name: 'Demo Athlete',
-        username: 'demo_athlete',
-        picture: '',
-      },
-    });
+  const demoSignIn = async () => {
+    setError('');
+    setIsLoading(true);
+
+    try {
+      await loginWithTelegram({
+        user: {
+          id: 'demo-telegram-user',
+          name: 'Demo Athlete',
+          username: 'demo_athlete',
+          picture: '',
+        },
+      });
+    } catch {
+      setError('Демо-вход выключен на backend.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

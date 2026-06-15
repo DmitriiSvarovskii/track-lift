@@ -1,0 +1,16 @@
+[Unit]
+Description=Track Lift FastAPI backend
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/track-lift/backend
+EnvironmentFile=/etc/track-lift/backend.env
+ExecStart=/var/www/track-lift/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

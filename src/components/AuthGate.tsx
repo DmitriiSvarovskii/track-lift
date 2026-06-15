@@ -6,23 +6,27 @@ const activityEvents = ['pointerdown', 'keydown', 'touchstart', 'scroll'] as con
 
 export function AuthGate({ children }: PropsWithChildren) {
   const authSession = useTrainingStore((state) => state.authSession);
-  const currentUserId = useTrainingStore((state) => state.currentUserId);
-  const validateSession = useTrainingStore((state) => state.validateSession);
+  const authStatus = useTrainingStore((state) => state.authStatus);
+  const initializeAuth = useTrainingStore((state) => state.initializeAuth);
   const touchSession = useTrainingStore((state) => state.touchSession);
 
   useEffect(() => {
-    validateSession();
+    void initializeAuth();
 
-    const intervalId = window.setInterval(validateSession, 60 * 1000);
+    const intervalId = window.setInterval(() => {
+      void touchSession();
+    }, 60 * 1000);
     return () => window.clearInterval(intervalId);
-  }, [validateSession]);
+  }, [initializeAuth, touchSession]);
 
   useEffect(() => {
     if (!authSession) {
       return undefined;
     }
 
-    const onActivity = () => touchSession();
+    const onActivity = () => {
+      void touchSession();
+    };
     activityEvents.forEach((eventName) => window.addEventListener(eventName, onActivity, { passive: true }));
     document.addEventListener('visibilitychange', onActivity);
 
@@ -32,7 +36,17 @@ export function AuthGate({ children }: PropsWithChildren) {
     };
   }, [authSession, touchSession]);
 
-  if (!authSession || !currentUserId) {
+  if (authStatus === 'checking') {
+    return (
+      <main className="login-screen">
+        <section className="login-panel">
+          <div className="empty-state">Проверяем сессию...</div>
+        </section>
+      </main>
+    );
+  }
+
+  if (authStatus !== 'authenticated' || !authSession) {
     return <LoginPage />;
   }
 
