@@ -3,6 +3,7 @@ import { FormEvent, useState } from 'react';
 import { useTrainingStore } from '../store/trainingStore';
 import type { WorkoutProgram } from '../types/domain';
 import { getExerciseName } from '../utils/metrics';
+import { formatPlannedReps, parsePlannedReps } from '../utils/program';
 
 type ProgramRow = {
   exerciseId: string;
@@ -54,7 +55,7 @@ export function ProgramsPage() {
         .map((exercise) => ({
           exerciseId: exercise.exerciseId,
           plannedSets: exercise.plannedSets?.toString() ?? '',
-          plannedReps: exercise.plannedReps?.toString() ?? '',
+          plannedReps: formatPlannedReps(exercise),
           comment: exercise.comment ?? '',
         })),
     );
@@ -86,7 +87,7 @@ export function ProgramsPage() {
         exerciseId: row.exerciseId,
         order: index + 1,
         plannedSets: Number(row.plannedSets) || undefined,
-        plannedReps: Number(row.plannedReps) || undefined,
+        ...parsePlannedReps(row.plannedReps),
         comment: row.comment.trim(),
       })),
     };
@@ -197,8 +198,7 @@ export function ProgramsPage() {
                   <label className="field small-field">
                     <span>Повторы</span>
                     <input
-                      type="number"
-                      min="0"
+                      type="text"
                       value={row.plannedReps}
                       onChange={(event) =>
                         setRows((current) =>
@@ -207,6 +207,7 @@ export function ProgramsPage() {
                           ),
                         )
                       }
+                      placeholder="12 или MAX"
                     />
                   </label>
                   <label className="field">
@@ -262,7 +263,7 @@ export function ProgramsPage() {
                       <li key={entry.id}>
                         <span>{getExerciseName(exercises, entry.exerciseId)}</span>
                         <small>
-                          {entry.plannedSets || '-'} x {entry.plannedReps || '-'}
+                          {entry.plannedSets || '-'} x {formatPlannedReps(entry)}
                         </small>
                       </li>
                     ))}

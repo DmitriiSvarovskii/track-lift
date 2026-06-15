@@ -7,7 +7,7 @@ def now_iso() -> str:
 
 def create_initial_training_data() -> dict:
     timestamp = now_iso()
-    return {
+    base_data = {
         "exercises": [
             {
                 "id": "exercise-bench-press",
@@ -63,3 +63,6 @@ def create_initial_training_data() -> dict:
         "programs": [],
         "sessions": [],
     }
+    from .shared_training import merge_shared_training_data
+
+    return merge_shared_training_data(base_data)

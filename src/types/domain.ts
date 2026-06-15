@@ -18,6 +18,8 @@ export type ProgramExercise = {
   order: number;
   plannedSets?: number;
   plannedReps?: number;
+  plannedRepsText?: string;
+  plannedRepsMax?: boolean;
   comment?: string;
 };
 

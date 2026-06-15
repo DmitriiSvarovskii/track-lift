@@ -5,6 +5,7 @@ import { useTrainingStore } from '../store/trainingStore';
 import type { WorkoutSessionExercise } from '../types/domain';
 import { createId } from '../utils/ids';
 import { getExerciseName } from '../utils/metrics';
+import { getPlannedRepsForSet } from '../utils/program';
 
 const toLocalDateTimeInput = (date = new Date()) => {
   const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
@@ -44,7 +45,10 @@ export function WorkoutPage() {
           sets: Array.from({ length: Math.max(programExercise.plannedSets ?? 1, 1) }, () => ({
             id: createId(),
             weight: 0,
-            reps: programExercise.plannedReps ?? 0,
+            reps: 0,
+          })).map((set, setIndex) => ({
+            ...set,
+            reps: getPlannedRepsForSet(programExercise, setIndex),
           })),
         })),
     );
