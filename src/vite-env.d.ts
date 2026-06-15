@@ -19,8 +19,8 @@ type TelegramLoginCallback = (payload: {
 interface Window {
   Telegram?: {
     Login?: {
-      auth: (options: { client_id: number; request_access?: string[]; lang?: string; nonce?: string }, callback: TelegramLoginCallback) => void;
-      init: (options: { client_id: number; request_access?: string[]; lang?: string; nonce?: string }, callback: TelegramLoginCallback) => void;
+      auth: (options: { client_id: number; request_access?: string[]; lang?: string; nonce?: string; redirect_uri?: string }, callback: TelegramLoginCallback) => void;
+      init: (options: { client_id: number; request_access?: string[]; lang?: string; nonce?: string; redirect_uri?: string }, callback: TelegramLoginCallback) => void;
       open: (callback?: TelegramLoginCallback) => void;
     };
   };

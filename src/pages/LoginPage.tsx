@@ -84,6 +84,7 @@ export function LoginPage() {
         request_access: ['write'],
         lang: 'ru',
         nonce,
+        redirect_uri: `${window.location.origin}/auth`,
       },
       async (payload) => {
         setIsLoading(true);
